@@ -13,8 +13,12 @@ const baseCategoryOrder = [
   "others",
 ]
 
-const dateLineRe = /^\d{2}\s+[A-Z]{3}\s+\d{2}\s+[A-Z]{3}\s+(.*)$/i
+const headerText = "POSTED DATE TRANSACTION DATE DESCRIPTION AMOUNT (SGD)"
+const sectionHeadings = new Set(["PURCHASE", "REPAYMENT/CONVERSION", "CASHBACK", "GENERAL"])
+const pageRe = /^PAGE\s+\d+\s+OF\s+\d+$/i
+const dateLineRe = /^(\d{2}\s+[A-Z]{3})\s+(\d{2}\s+[A-Z]{3})\s+(.*)$/i
 const amountRe = /([+-])\s*([\d,]+\.\d{2})/
+const amountGlobalRe = /([+-])\s*([\d,]+\.\d{2})/g
 const rangeOrder = { L: 0, H: 1, M: 2 }
 
 const state = {
@@ -119,7 +123,7 @@ function setMeta() {
 function extractItem(line) {
   const match = line.match(dateLineRe)
   if (match) {
-    return match[1].trim()
+    return match[3].trim()
   }
   return line.trim()
 }
@@ -177,6 +181,131 @@ function parseStatementText(text) {
   return rows
 }
 
+function buildLinesFromPage(textContent) {
+  const items = textContent.items
+    .map((item) => ({
+      text: String(item.str || ""),
+      x: item.transform[4],
+      y: item.transform[5],
+      width: item.width || 0,
+    }))
+    .filter((item) => item.text.trim().length > 0)
+  items.sort((a, b) => (b.y - a.y) || (a.x - b.x))
+  const lines = []
+  let current = null
+  const threshold = 2
+  items.forEach((item) => {
+    if (!current || Math.abs(item.y - current.y) > threshold) {
+      if (current) {
+        const text = current.parts.map((part) => part.text).join(" ").replace(/\s+/g, " ").trim()
+        if (text) lines.push(text)
+      }
+      current = { y: item.y, parts: [item] }
+    } else {
+      current.parts.push(item)
+    }
+  })
+  if (current) {
+    const text = current.parts.map((part) => part.text).join(" ").replace(/\s+/g, " ").trim()
+    if (text) lines.push(text)
+  }
+  return lines
+}
+
+function extractSections(pagesLines) {
+  const sections = []
+  pagesLines.forEach((lines) => {
+    let headerIndex = -1
+    for (let index = 0; index < lines.length; index += 1) {
+      if (lines[index].toUpperCase().includes(headerText)) {
+        headerIndex = index
+        break
+      }
+    }
+    if (headerIndex >= 0) {
+      sections.push(lines.slice(headerIndex + 1))
+    }
+  })
+  return sections
+}
+
+function parseSection(lines) {
+  const outputLines = []
+  let descParts = []
+  let pending = null
+  let expectMethod = false
+
+  for (let index = 0; index < lines.length; index += 1) {
+    let line = lines[index].trim()
+    if (!line) continue
+    const upper = line.toUpperCase()
+    if (pageRe.test(upper)) break
+
+    if (expectMethod) {
+      if (dateLineRe.test(upper)) {
+        if (pending) {
+          const headerLine = `${pending.posted} ${pending.tran} ${pending.desc}`.trim()
+          if (headerLine) outputLines.push(headerLine)
+          if (pending.amount) outputLines.push(pending.amount)
+        }
+        pending = null
+        expectMethod = false
+      } else {
+        let methodLine = line
+        if (pending) {
+          const headerLine = `${pending.posted} ${pending.tran} ${pending.desc}`.trim()
+          if (headerLine) outputLines.push(headerLine)
+          if (pending.amount && !amountRe.test(methodLine)) {
+            methodLine = `${methodLine} ${pending.amount}`.trim()
+          }
+          outputLines.push(methodLine)
+        }
+        descParts = []
+        pending = null
+        expectMethod = false
+        continue
+      }
+    }
+
+    if (sectionHeadings.has(upper)) {
+      continue
+    }
+
+    const match = line.match(dateLineRe)
+    if (match) {
+      const posted = match[1]
+      const tran = match[2]
+      let rest = match[3].trim()
+      let amount = ""
+      let extraDesc = rest
+      amountGlobalRe.lastIndex = 0
+      const amountMatches = [...rest.matchAll(amountGlobalRe)]
+      if (amountMatches.length) {
+        const last = amountMatches[amountMatches.length - 1]
+        amount = `${last[1]}${last[2]}`
+        const startIndex = last.index ?? rest.length
+        extraDesc = rest.slice(0, startIndex).trim()
+      }
+      const descList = descParts.filter((part) => part)
+      if (extraDesc) descList.push(extraDesc)
+      const desc = descList.join(" ").trim()
+      pending = { posted, tran, desc, amount }
+      expectMethod = true
+      continue
+    }
+
+    descParts.push(line)
+  }
+
+  if (pending) {
+    const headerLine = `${pending.posted} ${pending.tran} ${pending.desc}`.trim()
+    if (headerLine) outputLines.push(headerLine)
+    if (pending.amount) outputLines.push(pending.amount)
+  }
+
+  return outputLines
+}
+
 function recategorize() {
   state.rows = state.rows.map((row) => ({
     ...row,
@@ -192,6 +321,41 @@ function readFile(file) {
     reader.onerror = () => reject(new Error("Failed to read file"))
     reader.readAsText(file)
   })
+}
+
+function readFileAsArrayBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result || new ArrayBuffer(0))
+    reader.onerror = () => reject(new Error("Failed to read file"))
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+async function extractTextFromPdf(buffer) {
+  if (!window.pdfjsLib) {
+    throw new Error("PDF parser unavailable")
+  }
+  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.js"
+  }
+  const loadingTask = pdfjsLib.getDocument({ data: buffer })
+  const pdf = await loadingTask.promise
+  const pagesLines = []
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber)
+    const textContent = await page.getTextContent()
+    pagesLines.push(buildLinesFromPage(textContent))
+  }
+  const sections = extractSections(pagesLines)
+  const outputLines = []
+  sections.forEach((section) => {
+    outputLines.push(...parseSection(section))
+  })
+  if (!outputLines.length) {
+    return pagesLines.flat().join("\n")
+  }
+  return outputLines.join("\n")
 }
 
 function applyFilters() {
@@ -307,9 +471,18 @@ async function handleFileChange(event) {
   const file = event.target.files[0]
   if (!file) return
   try {
+    state.fileName = file.name
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
+    if (isPdf) {
+      setStatus("Reading PDF")
+      const buffer = await readFileAsArrayBuffer(file)
+      const text = await extractTextFromPdf(buffer)
+      elements.textInput.value = text
+      loadFromText(text)
+      return
+    }
     const text = await readFile(file)
     elements.textInput.value = text
-    state.fileName = file.name
     loadFromText(text)
   } catch (error) {
     setStatus("Failed to read file", true)

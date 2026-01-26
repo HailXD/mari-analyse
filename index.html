@@ -26,10 +26,10 @@
           <div class="panel-title">Input</div>
           <div class="input-actions">
             <label class="file-btn">
-              <input id="fileInput" type="file" accept=".txt">
-              <span>Choose TXT</span>
+              <input id="fileInput" type="file" accept=".txt,.pdf">
+              <span>Choose PDF/TXT</span>
             </label>
-            <button id="parseBtn" class="btn">Parse text</button>
+            <button id="parseBtn" class="btn">Parse input</button>
             <button id="clearBtn" class="btn ghost">Clear</button>
           </div>
           <textarea id="textInput" placeholder="Paste statement text here"></textarea>
@@ -121,6 +121,7 @@
         </section>
       </main>
     </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
