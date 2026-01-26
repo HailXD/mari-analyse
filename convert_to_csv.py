@@ -18,6 +18,11 @@ CATEGORY_ORDER = [
     "broadband",
     "online shopping",
     "online purchases",
+    "Entertainment",
+    "Transport",
+    "Private Hire",
+    "Equipment",
+    "Toys",
 ]
 
 RANGE_L_MAX = Decimal("50")
@@ -112,6 +117,8 @@ def build_rows(
 ) -> List[Tuple[str, str, Decimal, str]]:
     rows: List[Tuple[str, str, Decimal, str]] = []
     for item, amount in transactions:
+        if amount > 0:
+            amount = -amount
         category = categorize(item, keyword_map)
         amount_range = get_range(amount)
         rows.append((item, category, amount, amount_range))

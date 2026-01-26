@@ -3,6 +3,7 @@
     "A-ONE",
     "A-ONE SIGNATURE",
     "BREADTALK",
+    "ENCIK TAN",
     "KFC",
     "KOPITIAM",
     "MCDONALD",
@@ -55,6 +56,23 @@
     "STEAM",
     "SUBSCRIPTION",
     "XBOX"
+  ],
+  "Entertainment": [
+    "CIVIL SERVICE CLUB-BUK"
+  ],
+  "Transport": [
+    "SIMPLYGO"
+  ],
+  "Private Hire": [
+    "CABCHARGE",
+    "TADA"
+  ],
+  "Equipment": [
+    "IKEA",
+    "UNIVERSAL HOUSEHOLD"
+  ],
+  "Toys": [
+    "POP MART"
   ],
   "others": []
 }
