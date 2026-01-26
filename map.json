@@ -1,0 +1,60 @@
+{
+  "food": [
+    "A-ONE",
+    "A-ONE SIGNATURE",
+    "BREADTALK",
+    "KFC",
+    "KOPITIAM",
+    "MCDONALD",
+    "MCDONALD'S",
+    "OLD CHANG KEE",
+    "IKEA RESTAURANT"
+  ],
+  "grocery": [
+    "FAIRPRICE",
+    "GIANT",
+    "NTUC",
+    "NTUC FP",
+    "SHENG SIONG"
+  ],
+  "utilities": [
+    "SP DIGITAL",
+    "UTILITIE",
+    "UTILITY"
+  ],
+  "broadband": [
+    "M1",
+    "MYREPUBLIC",
+    "SINGTEL",
+    "STARHUB",
+    "TPG"
+  ],
+  "online shopping": [
+    "AMAZON",
+    "ALIEXPRESS",
+    "EARYSTAR",
+    "LAZADA",
+    "MIXSHOPSG",
+    "QOO10",
+    "SHOPEE",
+    "TAOBAO"
+  ],
+  "online purchases": [
+    "APPLE",
+    "APP STORE",
+    "DISNEY",
+    "EPIC GAMES",
+    "GAME",
+    "GOOGLE",
+    "IN APP",
+    "IN-APP",
+    "NETFLIX",
+    "PLAYSTATION",
+    "RECURRING",
+    "SPOTIFY",
+    "STEAM",
+    "SUBSCRIPTION",
+    "XBOX"
+  ],
+  "others": []
+}
