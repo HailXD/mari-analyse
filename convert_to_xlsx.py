@@ -1,13 +1,14 @@
-import csv
 import json
 import re
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from openpyxl import Workbook
+
 
 INPUT_TXT = "Jan2026_Mari_Credit_Card_E-Statement.txt"
-OUTPUT_CSV = "Jan2026_Mari_Credit_Card_E-Statement.csv"
+OUTPUT_XLSX = "Jan2026_Mari_Credit_Card_E-Statement.xlsx"
 MAP_JSON = "map.json"
 ENCODING = "utf-8"
 
@@ -125,12 +126,46 @@ def build_rows(
     return rows
 
 
-def write_csv(path: Path, rows: List[Tuple[str, str, Decimal, str]]) -> None:
-    with path.open("w", newline="", encoding=ENCODING) as file:
-        writer = csv.writer(file)
-        writer.writerow(["Item", "category", "price", "range"])
-        for item, category, amount, amount_range in rows:
-            writer.writerow([item, category, f"{amount:.2f}", amount_range])
+def build_summary_rows(
+    rows: List[Tuple[str, str, Decimal, str]],
+) -> List[Tuple[str, Decimal]]:
+    total = Decimal("0")
+    category_totals: Dict[str, Decimal] = {}
+    food_h_total = Decimal("0")
+    for _, category, amount, amount_range in rows:
+        total += amount
+        category_totals[category] = category_totals.get(category, Decimal("0")) + amount
+        if category == "food" and amount_range == "H":
+            food_h_total += amount
+    category_set = set(category_totals.keys())
+    ordered = [category for category in CATEGORY_ORDER if category in category_set]
+    extras = sorted([category for category in category_set if category not in ordered and category != "others"])
+    ordered.extend(extras)
+    if "others" in category_set:
+        ordered.append("others")
+    summary_rows: List[Tuple[str, Decimal]] = [("Total", total)]
+    for category in ordered:
+        summary_rows.append((category, category_totals.get(category, Decimal("0"))))
+    summary_rows.append(("food (range H)", food_h_total))
+    return summary_rows
+
+
+def write_xlsx(
+    path: Path,
+    rows: List[Tuple[str, str, Decimal, str]],
+    summary_rows: List[Tuple[str, Decimal]],
+) -> None:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Transactions"
+    sheet.append(["Item", "category", "price", "range"])
+    for item, category, amount, amount_range in rows:
+        sheet.append([item, category, float(amount), amount_range])
+    summary_sheet = workbook.create_sheet("Summary")
+    summary_sheet.append(["Category", "Total"])
+    for label, total in summary_rows:
+        summary_sheet.append([label, float(total)])
+    workbook.save(path)
 
 
 def main() -> None:
@@ -144,8 +179,9 @@ def main() -> None:
     transactions = parse_transactions(lines)
     keyword_map = load_keyword_map(map_path)
     rows = build_rows(transactions, keyword_map)
-    output_path = Path(OUTPUT_CSV)
-    write_csv(output_path, rows)
+    summary_rows = build_summary_rows(rows)
+    output_path = Path(OUTPUT_XLSX)
+    write_xlsx(output_path, rows, summary_rows)
     print(f"Wrote: {output_path} ({len(rows)} rows)")
 
 
