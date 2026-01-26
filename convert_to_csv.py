@@ -121,7 +121,7 @@ def build_rows(
             continue
         category = categorize(item, keyword_map)
         amount_range = get_range(amount)
-        rows.append((item, category, amount, amount_range))
+        rows.append((item, category, abs(amount), amount_range))
     return rows
 
 
