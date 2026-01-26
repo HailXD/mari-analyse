@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mari Analyse</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app">
+      <header class="top">
+        <div class="brand">
+          <div class="brand-title">Mari Analyse</div>
+          <div class="brand-sub">Statement explorer</div>
+        </div>
+        <div class="meta">
+          <div id="fileMeta">No data loaded</div>
+          <div id="rowMeta">0 transactions</div>
+        </div>
+      </header>
+      <main class="content">
+        <section class="panel input">
+          <div class="panel-title">Input</div>
+          <div class="input-actions">
+            <label class="file-btn">
+              <input id="fileInput" type="file" accept=".txt">
+              <span>Choose TXT</span>
+            </label>
+            <button id="parseBtn" class="btn">Parse text</button>
+            <button id="clearBtn" class="btn ghost">Clear</button>
+          </div>
+          <textarea id="textInput" placeholder="Paste statement text here"></textarea>
+          <div class="status" id="status"></div>
+        </section>
+        <section class="panel filters">
+          <div class="panel-title">Filters</div>
+          <div class="field">
+            <label for="searchInput">Search</label>
+            <input id="searchInput" type="text" placeholder="Item or category">
+          </div>
+          <div class="field">
+            <label for="categoryFilter">Category</label>
+            <select id="categoryFilter" multiple size="8"></select>
+          </div>
+          <div class="field">
+            <label>Range</label>
+            <div class="chips">
+              <label class="chip"><input type="checkbox" value="L" checked> L &lt; 50</label>
+              <label class="chip"><input type="checkbox" value="H" checked> H 10-49.99</label>
+              <label class="chip"><input type="checkbox" value="M" checked> M 50+</label>
+            </div>
+          </div>
+          <div class="field row">
+            <div class="stack">
+              <label for="minPrice">Min</label>
+              <input id="minPrice" type="number" min="0" step="0.01" placeholder="0">
+            </div>
+            <div class="stack">
+              <label for="maxPrice">Max</label>
+              <input id="maxPrice" type="number" min="0" step="0.01" placeholder="No cap">
+            </div>
+          </div>
+          <div class="field row">
+            <div class="stack">
+              <label for="sortBy">Sort</label>
+              <select id="sortBy">
+                <option value="item">Item</option>
+                <option value="category">Category</option>
+                <option value="price">Price</option>
+                <option value="range">Range</option>
+              </select>
+            </div>
+            <div class="stack">
+              <label for="sortDir">Order</label>
+              <select id="sortDir">
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+              </select>
+            </div>
+          </div>
+          <button id="applyBtn" class="btn wide">Apply filters</button>
+        </section>
+        <section class="panel output">
+          <div class="panel-title">Transactions</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Category</th>
+                  <th>Price</th>
+                  <th>Range</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="panel summary">
+          <div class="panel-title">Summary</div>
+          <div class="summary-grid">
+            <div class="summary-total">
+              <div class="label">Total</div>
+              <div id="totalValue" class="value">0.00</div>
+            </div>
+            <div class="summary-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody id="summaryBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
