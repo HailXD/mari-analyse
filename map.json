@@ -61,7 +61,8 @@
     "CIVIL SERVICE CLUB-BUK"
   ],
   "Transport": [
-    "SIMPLYGO"
+    "SIMPLYGO",
+    "TRANSIT"
   ],
   "Private Hire": [
     "CABCHARGE",
@@ -69,6 +70,9 @@
   ],
   "Equipment": [
     "IKEA",
+    "MUJI",
+    "NITORI",
+    "TAKASHIMAYA",
     "UNIVERSAL HOUSEHOLD"
   ],
   "Toys": [

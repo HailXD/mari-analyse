@@ -47,22 +47,22 @@ def extract_item(line: str) -> str:
     return line.strip()
 
 
-def extract_amount(line: str) -> Decimal:
+def extract_amount(line: str) -> Tuple[Decimal, bool]:
     match = AMOUNT_RE.search(line)
     if not match:
-        return Decimal("0")
+        return Decimal("0"), False
     sign, raw = match.group(1), match.group(2)
     try:
         value = Decimal(raw.replace(",", ""))
     except InvalidOperation:
-        return Decimal("0")
+        return Decimal("0"), False
     if sign == "-":
-        return -value
-    return value
+        return -value, False
+    return value, True
 
 
-def parse_transactions(lines: List[str]) -> List[Tuple[str, Decimal]]:
-    transactions: List[Tuple[str, Decimal]] = []
+def parse_transactions(lines: List[str]) -> List[Tuple[str, Decimal, bool]]:
+    transactions: List[Tuple[str, Decimal, bool]] = []
     index = 0
     count = len(lines)
     while index < count:
@@ -72,8 +72,8 @@ def parse_transactions(lines: List[str]) -> List[Tuple[str, Decimal]]:
             continue
         amount_line = lines[index + 1].strip() if index + 1 < count else ""
         item = extract_item(desc_line)
-        amount = extract_amount(amount_line)
-        transactions.append((item, amount))
+        amount, is_positive = extract_amount(amount_line)
+        transactions.append((item, amount, is_positive))
         index += 2
     return transactions
 
@@ -112,13 +112,13 @@ def get_range(amount: Decimal) -> str:
 
 
 def build_rows(
-    transactions: List[Tuple[str, Decimal]],
+    transactions: List[Tuple[str, Decimal, bool]],
     keyword_map: Dict[str, List[str]],
 ) -> List[Tuple[str, str, Decimal, str]]:
     rows: List[Tuple[str, str, Decimal, str]] = []
-    for item, amount in transactions:
-        if amount > 0:
-            amount = -amount
+    for item, amount, is_positive in transactions:
+        if is_positive:
+            continue
         category = categorize(item, keyword_map)
         amount_range = get_range(amount)
         rows.append((item, category, amount, amount_range))
