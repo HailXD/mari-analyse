@@ -1,3 +1,7 @@
+const PYODIDE_INDEX_URL = "pyodide/"
+const PYPDF_WHEEL = "wheels/pypdf-6.6.2-py3-none-any.whl"
+const PDF_TEMP_PREFIX = "statement-"
+
 const baseCategoryOrder = [
   "food",
   "grocery",
@@ -27,6 +31,11 @@ const state = {
   rows: [],
   filtered: [],
   fileName: "",
+}
+
+const pyState = {
+  instance: null,
+  loading: null,
 }
 
 const elements = {
@@ -332,30 +341,67 @@ function readFileAsArrayBuffer(file) {
   })
 }
 
+async function getPyodideInstance() {
+  if (pyState.instance) {
+    return pyState.instance
+  }
+  if (!pyState.loading) {
+    pyState.loading = (async () => {
+      if (!window.loadPyodide) {
+        throw new Error("PDF engine unavailable")
+      }
+      const pyodide = await loadPyodide({ indexURL: PYODIDE_INDEX_URL })
+      await pyodide.loadPackage("micropip")
+      const micropip = pyodide.pyimport("micropip")
+      await micropip.install(PYPDF_WHEEL)
+      if (typeof micropip.destroy === "function") {
+        micropip.destroy()
+      }
+      pyState.instance = pyodide
+      return pyodide
+    })()
+  }
+  return pyState.loading
+}
+
 async function extractTextFromPdf(buffer) {
-  if (!window.pdfjsLib) {
-    throw new Error("PDF parser unavailable")
+  const pyodide = await getPyodideInstance()
+  const fileName = `${PDF_TEMP_PREFIX}${Date.now()}.pdf`
+  pyodide.FS.writeFile(fileName, new Uint8Array(buffer))
+  try {
+    const code = [
+      "import json",
+      "from pypdf import PdfReader",
+      `reader = PdfReader("${fileName}")`,
+      "pages = []",
+      "for page in reader.pages:",
+      "    text = page.extract_text() or ''",
+      "    pages.append(text)",
+      "json.dumps(pages)",
+    ].join("\n")
+    const pagesJson = await pyodide.runPythonAsync(code)
+    const pages = JSON.parse(pagesJson || "[]")
+    const pagesLines = pages.map((page) =>
+      page
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+    )
+    const sections = extractSections(pagesLines)
+    const outputLines = []
+    sections.forEach((section) => {
+      outputLines.push(...parseSection(section))
+    })
+    if (!outputLines.length) {
+      return pagesLines.flat().join("\n")
+    }
+    return outputLines.join("\n")
+  } finally {
+    const info = pyodide.FS.analyzePath(fileName)
+    if (info.exists) {
+      pyodide.FS.unlink(fileName)
+    }
   }
-  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.js"
-  }
-  const loadingTask = pdfjsLib.getDocument({ data: buffer })
-  const pdf = await loadingTask.promise
-  const pagesLines = []
-  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-    const page = await pdf.getPage(pageNumber)
-    const textContent = await page.getTextContent()
-    pagesLines.push(buildLinesFromPage(textContent))
-  }
-  const sections = extractSections(pagesLines)
-  const outputLines = []
-  sections.forEach((section) => {
-    outputLines.push(...parseSection(section))
-  })
-  if (!outputLines.length) {
-    return pagesLines.flat().join("\n")
-  }
-  return outputLines.join("\n")
 }
 
 function applyFilters() {
