@@ -1,0 +1,37 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mari PDF to TXT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="card">
+      <div class="title">
+        <h1>Mari PDF to TXT</h1>
+        <p>Drop a PDF statement to extract transactions into the same two-line format as the script.</p>
+      </div>
+      <div class="controls">
+        <label class="file">
+          <input id="pdfInput" type="file" accept="application/pdf">
+          <span>Select PDF</span>
+        </label>
+        <button id="runBtn" class="primary" type="button" disabled>Convert</button>
+        <button id="downloadBtn" class="ghost" type="button" disabled>Download TXT</button>
+      </div>
+      <div class="meta">
+        <span id="status">Waiting for a PDF.</span>
+        <span id="count"></span>
+      </div>
+      <textarea id="output" spellcheck="false" placeholder="Output will appear here."></textarea>
+    </section>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
